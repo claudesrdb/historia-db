@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0d14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="史録DB">
+<meta name="mobile-web-app-capable" content="yes">
+<title>史録リサーチDB</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg:       #0a0d14;
+  --bg2:      #10141f;
+  --bg3:      #161b28;
+  --bg4:      #1c2233;
+  --border:   #222840;
+  --border2:  #2d3550;
+  --ink:      #e8e4d8;
+  --ink-dim:  #9a9480;
+  --ink-muted:#5a5848;
+  --sapphire: #4a6fa5;
+  --sapphire-dim: #2a4060;
+  --gold:     #b8972a;
+  --gold-dim: #6a5518;
+  --amber:    #c07830;
+  --parchment:#d4c898;
+  --red:      #8c3030;
+  --red-bg:   #180a0a;
+  --green:    #3a6a3a;
+  --green-bg: #0a140a;
+  --teal:     #2a7070;
+  --purple:   #6a4a8a;
+  --src-color:#5a9a7a;
+  --src-bg:   #081410;
+  --nav-h:    64px;
+  --safe-b:   env(safe-area-inset-bottom, 0px);
+  --safe-t:   env(safe-area-inset-top, 0px);
+}
+
+html, body {
+  height: 100%; overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Serif JP', serif;
+  -webkit-font-smoothing: antialiased;
+}
+button { background: none; border: none; cursor: pointer; font-family: inherit; color: inherit; }
+input, select, textarea { font-family: inherit; }
+select { appearance: none; -webkit-appearance: none; }
+a { color: var(--sapphire); }
+
+/* ── Shell ── */
+#app {
+  height: 100dvh;
+  display: flex; flex-direction: column;
+  padding-top: var(--safe-t);
+  overflow: hidden;
+}
+#screen-area { flex: 1; overflow: hidden; position: relative; }
+.screen {
+  position: absolute; inset: 0;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  opacity: 0; transform: translateX(18px);
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.screen.active { opacity: 1; transform: none; pointer-events: all; }
+.screen-inner {
+  padding: 16px 16px calc(var(--nav-h) + var(--safe-b) + 24px);
+  min-height: 100%;
+}
+
+/* ── Nav ── */
+#bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(var(--nav-h) + var(--safe-b));
+  padding-bottom: var(--safe-b);
+  background: rgba(10,13,20,0.97);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: flex-start;
+  z-index: 100;
+}
+.nav-btn {
+  flex: 1; height: var(--nav-h);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  color: var(--ink-muted); transition: color .2s;
+  position: relative;
+}
+.nav-btn.active { color: var(--parchment); }
+.nav-icon { font-size: 19px; line-height: 1; }
+.nav-label { font-size: 9px; letter-spacing: .12em; font-family: 'JetBrains Mono', monospace; }
+.nav-badge {
+  position: absolute; top: 8px; right: calc(50% - 20px);
+  background: var(--amber); color: #0a0a0a;
+  font-size: 9px; font-family: 'JetBrains Mono', monospace; font-weight: 700;
+  border-radius: 8px; padding: 1px 5px; min-width: 16px; text-align: center; line-height: 14px;
+}
+
+/* ── Page Header ── */
+.page-header { padding: 18px 0 14px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+.page-eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: .3em; color: var(--ink-muted); text-transform: uppercase; margin-bottom: 3px;
+}
+.page-title { font-family: 'Crimson Pro', serif; font-size: 26px; color: var(--ink); font-weight: 400; letter-spacing: .02em; }
+
+/* ── Panels ── */
+.panel {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; margin-bottom: 12px;
+}
+.panel-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: .2em; color: var(--ink-muted); text-transform: uppercase; margin-bottom: 10px;
+}
+
+/* ── Forms ── */
+.form-group { margin-bottom: 13px; }
+.form-label {
+  display: block; font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: .2em; color: var(--ink-muted);
+  text-transform: uppercase; margin-bottom: 5px;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--border2);
+  border-radius: 7px; color: var(--ink); padding: 12px 13px; font-size: 14px;
+  outline: none; transition: border-color .2s; line-height: 1.5;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--parchment); }
+.form-textarea { resize: none; min-height: 76px; }
+.form-select-wrap { position: relative; }
+.form-select-wrap::after {
+  content: '▾'; position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%); color: var(--ink-dim); pointer-events: none;
+}
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 7px; font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: .05em; padding: 10px 16px;
+  transition: opacity .15s, transform .1s; white-space: nowrap;
+}
+.btn:active { opacity: .7; transform: scale(.97); }
+.btn-primary { background: var(--parchment); color: #0a0a0a; font-weight: 700; }
+.btn-primary:disabled { opacity: .5; }
+.btn-full { width: 100%; padding: 14px; font-size: 13px; }
+.btn-ghost { color: var(--ink-dim); background: var(--bg3); }
+.btn-success { background: var(--green-bg); color: #7bc87b; border: 1px solid #1e3a1e; }
+.btn-danger  { background: var(--red-bg);   color: #c87b7b; border: 1px solid #3a1e1e; }
+.btn-sm { padding: 6px 11px; font-size: 10px; }
+.btn-icon { padding: 8px; border-radius: 7px; background: var(--bg3); }
+
+/* ── Stats ── */
+.stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 9px; padding: 12px 8px; text-align: center; }
+.stat-num { font-family: 'Crimson Pro', serif; font-size: 30px; line-height: 1; margin-bottom: 3px; }
+.stat-lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .08em; color: var(--ink-muted); }
+
+/* ── Search ── */
+.search-wrap { position: relative; margin-bottom: 10px; }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-muted); font-size: 15px; pointer-events: none; }
+.search-input {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 9px; color: var(--ink); padding: 11px 13px 11px 38px;
+  font-size: 14px; outline: none;
+}
+.search-input:focus { border-color: var(--parchment); }
+
+/* ── Chips ── */
+.chip-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
+.chip-row::-webkit-scrollbar { display: none; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 11px; border-radius: 100px;
+  border: 1px solid var(--border2); font-size: 10px;
+  font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+  color: var(--ink-dim); background: var(--bg2); transition: all .15s;
+}
+.chip.active { background: var(--parchment); color: #0a0a0a; border-color: var(--parchment); font-weight: 700; }
+
+/* ── Source Badge ── */
+.src-types { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.src-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--src-bg); border: 1px solid var(--teal);
+  border-radius: 4px; padding: 2px 7px;
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--src-color);
+}
+.reliability-bar {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+}
+.rel-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--ink-muted); white-space: nowrap; }
+.rel-dots { display: flex; gap: 3px; }
+.rel-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); }
+.rel-dot.filled { background: var(--src-color); }
+
+/* ── Item Cards ── */
+.item-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 9px; padding: 14px; margin-bottom: 10px;
+  transition: border-color .2s;
+}
+.item-card.approved { background: #08120c; border-color: #1a3020; }
+.item-card.rejected { opacity: .45; }
+.item-card-meta {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 8px;
+}
+.cat-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 100px; padding: 3px 9px;
+  font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  background: var(--bg3); border: 1px solid var(--border2);
+}
+.era-pill {
+  font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  color: var(--ink-muted); background: var(--bg3);
+  border-radius: 4px; padding: 2px 7px; border: 1px solid var(--border);
+}
+.item-title {
+  font-family: 'Crimson Pro', serif; font-size: 17px;
+  color: var(--ink); margin-bottom: 5px; line-height: 1.4; font-weight: 600;
+}
+.item-preview { font-size: 12px; color: var(--ink-muted); line-height: 1.7; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.item-body { font-size: 13px; color: var(--ink-dim); line-height: 1.85; margin-bottom: 10px; }
+.item-insight {
+  font-size: 12px; color: #7aaac0; border-left: 2px solid var(--sapphire);
+  padding: 4px 10px; margin-bottom: 10px;
+  background: rgba(74,111,165,.08); border-radius: 0 6px 6px 0; line-height: 1.6;
+}
+.source-block {
+  background: var(--src-bg); border: 1px solid #1e3828;
+  border-radius: 6px; padding: 10px; margin-bottom: 10px;
+}
+.source-block-title {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  color: var(--src-color); letter-spacing: .15em; text-transform: uppercase; margin-bottom: 6px;
+}
+.source-item {
+  font-size: 11px; color: var(--ink-dim); line-height: 1.7; margin-bottom: 4px;
+  padding-left: 10px; border-left: 1px solid #1e3828;
+}
+.source-item:last-child { margin-bottom: 0; }
+.source-item a { color: var(--src-color); }
+.tags-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.tag {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 100px; padding: 2px 8px;
+  font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--ink-muted);
+}
+.action-row {
+  display: flex; gap: 7px; margin-top: 12px;
+  border-top: 1px solid var(--border); padding-top: 11px;
+}
+.action-row .btn { flex: 1; }
+
+/* ── Category colors ── */
+.cat-historical { color: var(--amber);    border-color: var(--amber)44; }
+.cat-biography  { color: var(--sapphire); border-color: var(--sapphire)44; }
+.cat-legend     { color: var(--purple);   border-color: var(--purple)44; }
+.cat-nature     { color: var(--src-color);border-color: var(--teal)44; }
+.cat-science    { color: #70a0c0;         border-color: #70a0c044; }
+.cat-culture    { color: var(--gold);     border-color: var(--gold)44; }
+
+/* ── Toast / Loading / Sheet ── */
+#toast {
+  position: fixed; bottom: calc(var(--nav-h) + var(--safe-b) + 14px);
+  left: 14px; right: 14px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 9px; padding: 12px 15px;
+  font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--ink);
+  z-index: 200; opacity: 0; transform: translateY(8px);
+  transition: opacity .2s, transform .2s; pointer-events: none;
+}
+#toast.show { opacity: 1; transform: none; }
+
+.loading-overlay {
+  position: fixed; inset: 0; background: rgba(10,13,20,.88);
+  backdrop-filter: blur(6px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 300; gap: 14px; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.loading-overlay.show { opacity: 1; pointer-events: all; }
+.spinner {
+  width: 28px; height: 28px;
+  border: 2px solid rgba(184,151,42,.25); border-top-color: var(--gold);
+  border-radius: 50%; animation: spin .9s linear infinite;
+}
+.loading-text { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-dim); letter-spacing: .1em; }
+.loading-sub  { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-muted); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#sheet-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65);
+  z-index: 400; opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+#sheet-overlay.show { opacity: 1; pointer-events: all; }
+#sheet {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--bg2); border-top: 1px solid var(--border2);
+  border-radius: 18px 18px 0 0;
+  padding: 20px 18px calc(var(--safe-b) + 20px);
+  z-index: 401; transform: translateY(100%);
+  transition: transform .3s cubic-bezier(.32,.72,0,1);
+  max-height: 85dvh; overflow-y: auto;
+}
+#sheet.show { transform: none; }
+.sheet-handle { width: 34px; height: 4px; background: var(--border2); border-radius: 2px; margin: -8px auto 16px; }
+
+/* ── Empty State ── */
+.empty-state { text-align: center; padding: 44px 20px; color: var(--ink-muted); }
+.empty-icon { font-size: 38px; margin-bottom: 12px; }
+.empty-title { font-family: 'Crimson Pro', serif; font-size: 16px; color: var(--ink-dim); margin-bottom: 6px; }
+.empty-desc { font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.8; }
+
+/* ── Info Banner ── */
+.info-banner {
+  background: linear-gradient(135deg, var(--bg2), #0e1220);
+  border: 1px solid var(--sapphire-dim); border-radius: 9px;
+  padding: 13px; margin-bottom: 14px;
+  font-size: 12px; color: var(--ink-dim); line-height: 1.75;
+}
+.info-banner .hl { color: var(--parchment); }
+
+/* ── Provider toggle ── */
+.provider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.provider-btn {
+  padding: 11px 8px; border-radius: 8px; border: 2px solid var(--border2);
+  background: var(--bg); font-size: 12px; font-family: 'JetBrains Mono', monospace;
+  line-height: 1.5; text-align: center; transition: all .2s;
+  color: var(--ink-dim);
+}
+.provider-btn.active { border-color: var(--parchment); background: rgba(212,200,152,.08); color: var(--parchment); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+
+</head>
+<body>
+<div id="app">
+  <div id="screen-area">
+
+```
+<!-- ── GENERATE ── -->
+<div class="screen active" id="screen-generate">
+  <div class="screen-inner">
+    <div class="page-header">
+      <div class="page-eyebrow">Historical Research System</div>
+      <div class="page-title">史録リサーチ</div>
+    </div>
+
+    <div class="stats-grid" id="stats-row"></div>
+
+    <div class="info-banner">
+      <span class="hl">📜 一次資料付き</span>で歴史的逸話を収集。<br>
+      論文・伝記・研究書など<span class="hl">信頼できる出典</span>を必須条件として生成。<br>
+      小説のリアリティ強化に使える「実際にあった話」を蓄積する。
+    </div>
+
+    <div class="panel">
+      <div class="form-group">
+        <label class="form-label">リサーチテーマ</label>
+        <textarea id="inp-topic" class="form-textarea" rows="3"
+          placeholder="例：江戸時代の刀鍛冶&#10;ナポレオンの奇癖&#10;実在した奇妙な動物行動&#10;中世ヨーロッパの医学"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">カテゴリ</label>
+          <div class="form-select-wrap">
+            <select id="inp-cat" class="form-select">
+              <option value="historical">⚔️ 歴史的事件・珍事</option>
+              <option value="biography">👤 人物伝記・逸話</option>
+              <option value="legend">🌙 伝説・神話・民間伝承</option>
+              <option value="nature">🦎 自然・動物の奇習</option>
+              <option value="science">🔬 科学的発見・実験</option>
+              <option value="culture">🏺 文化・風習・儀式</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">件数</label>
+          <div class="form-select-wrap">
+            <select id="inp-count" class="form-select">
+              <option value="3">3件</option>
+              <option value="5" selected>5件</option>
+              <option value="8">8件</option>
+              <option value="10">10件</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="handleGenerate()" id="btn-generate">
+        <span style="font-size:15px">🔎</span> 資料付き事例を検索・生成
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">収集条件（自動適用）</div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span style="color:var(--src-color);font-size:13px;min-width:18px">✓</span>
+          <div style="font-size:12px;color:var(--ink-muted);line-height:1.7">論文・研究書・信頼できる出版社の書籍など<strong style="color:var(--ink-dim)">一次資料</strong>が確認できるもの</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span style="color:var(--src-color);font-size:13px;min-width:18px">✓</span>
+          <div style="font-size:12px;color:var(--ink-muted);line-height:1.7">著者名・書籍名・刊行年・URL等<strong style="color:var(--ink-dim)">資料の所在</strong>を明示</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span style="color:var(--src-color);font-size:13px;min-width:18px">✓</span>
+          <div style="font-size:12px;color:var(--ink-muted);line-height:1.7">小説執筆への<strong style="color:var(--ink-dim)">活用ヒント</strong>（情景描写・キャラ造形・世界観）を付与</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span style="color:var(--amber);font-size:13px;min-width:18px">⚠</span>
+          <div style="font-size:12px;color:var(--ink-muted);line-height:1.7">資料が確認できない事例は<strong style="color:var(--amber)">要確認</strong>フラグ付きで生成</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── COLLECTION ── -->
+<div class="screen" id="screen-collection">
+  <div class="screen-inner">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div>
+        <div class="page-eyebrow">Step 2</div>
+        <div class="page-title">収集DB</div>
+      </div>
+      <button class="btn btn-success btn-sm" onclick="approveAll()">全件承認</button>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="coll-search" placeholder="キーワード検索…" oninput="renderCollection()">
+    </div>
+    <div class="chip-row" id="coll-chips"></div>
+    <div id="coll-list"></div>
+  </div>
+</div>
+
+<!-- ── PRACTICAL ── -->
+<div class="screen" id="screen-practical">
+  <div class="screen-inner">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div>
+        <div class="page-eyebrow">Step 3</div>
+        <div class="page-title">実用DB</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ CSV</button>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="prac-search" placeholder="キーワード検索…" oninput="renderPractical()">
+    </div>
+    <div class="chip-row" id="prac-chips"></div>
+    <div id="prac-list"></div>
+  </div>
+</div>
+
+<!-- ── SETTINGS ── -->
+<div class="screen" id="screen-settings">
+  <div class="screen-inner">
+    <div class="page-header">
+      <div class="page-eyebrow">Configuration</div>
+      <div class="page-title">設定</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">AIプロバイダー</div>
+      <div class="provider-grid">
+        <button id="pbtn-gemini" class="provider-btn" onclick="setProvider('gemini')">
+          🆓 Gemini<br><span style="font-size:9px;color:#7bc87b">無料枠あり・推奨</span>
+        </button>
+        <button id="pbtn-anthropic" class="provider-btn" onclick="setProvider('anthropic')">
+          💳 Claude<br><span style="font-size:9px;color:var(--ink-muted)">有料のみ</span>
+        </button>
+      </div>
+
+      <div id="sec-gemini">
+        <div style="background:var(--green-bg);border:1px solid #1e3828;border-radius:6px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--ink-muted);line-height:1.7">
+          🆓 <strong style="color:#7bc87b">無料</strong> ·
+          <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> で取得
+        </div>
+        <div style="position:relative">
+          <input type="password" id="key-gemini" class="form-input" placeholder="AIza..." style="padding-right:44px">
+          <button onclick="toggleVis('key-gemini')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--ink-muted);font-size:14px">👁</button>
+        </div>
+      </div>
+
+      <div id="sec-anthropic" style="display:none">
+        <div style="font-size:12px;color:var(--ink-muted);margin-bottom:8px;line-height:1.7">
+          <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> で取得（有料）
+        </div>
+        <div style="position:relative">
+          <input type="password" id="key-anthropic" class="form-input" placeholder="sk-ant-api03-..." style="padding-right:44px">
+          <button onclick="toggleVis('key-anthropic')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--ink-muted);font-size:14px">👁</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:12px" onclick="saveKey()">保存する</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">データ管理</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;color:var(--ink-dim)">総事例数</div>
+        <div id="set-total" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted)">0件</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;color:var(--ink-dim)">実用DB登録数</div>
+        <div id="set-approved" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted)">0件</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+        <div style="font-size:13px;color:var(--ink-dim)">データをリセット</div>
+        <button class="btn btn-danger btn-sm" onclick="resetData()">リセット</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">このアプリについて</div>
+      <p style="font-size:12px;color:var(--ink-muted);line-height:1.85">
+        歴史的事実・人物伝記・伝説など、<strong style="color:var(--ink-dim)">一次資料が確認できる</strong>逸話・雑学を収集するリサーチDB。<br>
+        Gemini APIのウェブ検索機能を使い、実際の文献情報を付きで生成します。<br><br>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-muted)">史録リサーチDB v1.0</span>
+      </p>
+    </div>
+  </div>
+</div>
+```
+
+  </div><!-- /screen-area -->
+
+  <!-- Nav -->
+
+  <nav id="bottom-nav">
+    <button class="nav-btn active" data-s="generate" onclick="switchTab('generate')">
+      <span class="nav-icon">🔎</span><span class="nav-label">検索</span>
+    </button>
+    <button class="nav-btn" data-s="collection" onclick="switchTab('collection')">
+      <span class="nav-icon">📚</span><span class="nav-label">収集DB</span>
+      <span class="nav-badge" id="badge-p" style="display:none"></span>
+    </button>
+    <button class="nav-btn" data-s="practical" onclick="switchTab('practical')">
+      <span class="nav-icon">📖</span><span class="nav-label">実用DB</span>
+      <span class="nav-badge" id="badge-a" style="display:none"></span>
+    </button>
+    <button class="nav-btn" data-s="settings" onclick="switchTab('settings')">
+      <span class="nav-icon">⚙️</span><span class="nav-label">設定</span>
+    </button>
+  </nav>
+</div>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="load-text">資料を検索中…</div>
+  <div class="loading-sub" id="load-sub">Gemini がウェブを検索しています</div>
+</div>
+
+<div id="toast"></div>
+
+<div id="sheet-overlay" onclick="closeSheet()"></div>
+<div id="sheet"><div class="sheet-handle"></div><div id="sheet-body"></div></div>
+
+<script>
+// ══════════════════════════════════════
+// Constants & State
+// ══════════════════════════════════════
+const DB_KEY = 'historia_v1';
+
+const CATS = [
+  { id:'historical', label:'歴史的事件',  icon:'⚔️', cls:'cat-historical' },
+  { id:'biography',  label:'人物伝記',    icon:'👤', cls:'cat-biography'  },
+  { id:'legend',     label:'伝説・神話',  icon:'🌙', cls:'cat-legend'     },
+  { id:'nature',     label:'自然・動物',  icon:'🦎', cls:'cat-nature'     },
+  { id:'science',    label:'科学的発見',  icon:'🔬', cls:'cat-science'    },
+  { id:'culture',    label:'文化・風習',  icon:'🏺', cls:'cat-culture'    },
+];
+const CMAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
+
+const SRC_TYPES = {
+  paper:    '📄 論文',
+  book:     '📕 書籍',
+  interview:'🎙 インタビュー',
+  archive:  '🗄 公文書・記録',
+  research: '🔬 研究報告',
+  biography:'📗 伝記',
+};
+
+let state = { items:[], collCat:'all', pracCat:'all' };
+
+// ══════════════════════════════════════
+// Storage
+// ══════════════════════════════════════
+function load() {
+  try { state.items = JSON.parse(localStorage.getItem(DB_KEY)||'[]'); } catch { state.items=[]; }
+}
+function save() { localStorage.setItem(DB_KEY, JSON.stringify(state.items)); }
+function getProvider() { return localStorage.getItem('hist_provider')||'gemini'; }
+function getKey()      { return localStorage.getItem('hist_key_'+getProvider())||''; }
+
+function saveKey() {
+  const p = getProvider();
+  const v = document.getElementById('key-'+p).value.trim();
+  if (!v) { toast('APIキーを入力してください'); return; }
+  localStorage.setItem('hist_key_'+p, v);
+  toast('✅ APIキーを保存しました');
+}
+function toggleVis(id) {
+  const el = document.getElementById(id);
+  el.type = el.type==='password' ? 'text' : 'password';
+}
+function setProvider(p) {
+  localStorage.setItem('hist_provider', p);
+  document.getElementById('sec-gemini').style.display     = p==='gemini'    ? '' : 'none';
+  document.getElementById('sec-anthropic').style.display  = p==='anthropic' ? '' : 'none';
+  document.getElementById('pbtn-gemini').classList.toggle('active',    p==='gemini');
+  document.getElementById('pbtn-anthropic').classList.toggle('active', p==='anthropic');
+}
+
+// ══════════════════════════════════════
+// UI Helpers
+// ══════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.s===name));
+  if(name==='collection') renderCollection();
+  if(name==='practical')  renderPractical();
+  if(name==='settings')   renderSettings();
+  if(name==='generate')   renderStats();
+}
+function toast(msg, d=2600) {
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),d);
+}
+function showLoad(t='資料を検索中…', s='Gemini がウェブを検索しています') {
+  document.getElementById('load-text').textContent=t;
+  document.getElementById('load-sub').textContent=s;
+  document.getElementById('loading').classList.add('show');
+}
+function hideLoad() { document.getElementById('loading').classList.remove('show'); }
+function openSheet(html) {
+  document.getElementById('sheet-body').innerHTML=html;
+  document.getElementById('sheet-overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+function closeSheet() {
+  document.getElementById('sheet-overlay').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+}
+
+// ══════════════════════════════════════
+// AI API
+// ══════════════════════════════════════
+async function callAI(prompt, system) {
+  const key = getKey();
+  const prov = getProvider();
+  if (!key) throw new Error('APIキーが設定されていません。設定タブから入力してください。');
+
+  if (prov === 'gemini') {
+    // Gemini with Google Search grounding
+    const model = 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+    const body = {
+      system_instruction: { parts: [{ text: system }] },
+      contents: [{ role:'user', parts:[{ text: prompt }] }],
+      tools: [{ google_search: {} }],
+      generationConfig: { maxOutputTokens: 8192, temperature: 0.4 },
+    };
+    const res = await fetch(url, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(()=>({}));
+      throw new Error(e.error?.message || `Gemini APIエラー ${res.status}`);
+    }
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.filter(p=>p.text).map(p=>p.text).join('')||'';
+
+  } else {
+    // Anthropic Claude
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body: JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:8192, system,
+        messages:[{role:'user',content:prompt}],
+      }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(()=>({}));
+      throw new Error(e.error?.message || `Claude APIエラー ${res.status}`);
+    }
+    const data = await res.json();
+    return data.content?.map(b=>b.text||'').join('')||'';
+  }
+}
+
+// ══════════════════════════════════════
+// Generate
+// ══════════════════════════════════════
+async function generateItems(topic, category, count) {
+  const catLabel = CMAP[category]?.label || category;
+
+  const system = `あなたは歴史・文化・科学の専門的なリサーチアシスタントです。
+指定テーマについて、一次資料が確認できる興味深い逸話・事例を調査します。
+必ずJSON配列のみを返してください。前置き・説明・マークダウン記号は一切不要です。
+
+形式（厳守）:
+[{
+  "title": "事例タイトル（20字以内）",
+  "era": "時代・年代（例：17世紀、1842年、江戸時代中期）",
+  "summary": "概要（150-250字）",
+  "detail": "詳細説明（200-350字）事実に基づき具体的に",
+  "sources": [
+    {
+      "type": "paper|book|interview|archive|research|biography のいずれか",
+      "citation": "著者名『書籍・論文名』出版社・雑誌名 発行年 またはURL",
+      "note": "この資料で確認できる内容（30字以内）"
+    }
+  ],
+  "source_reliability": 1から5の整数（5=複数一次資料確認済み、3=資料あり要確認、1=伝聞のみ）,
+  "fiction_use": "小説執筆への活用ヒント（情景描写・キャラ造形・世界観構築への具体的提案、80-120字）",
+  "tags": ["タグ1","タグ2","タグ3"]
+}]
+
+重要なルール：
+- 資料が確認できないものは source_reliability を1または2にすること
+- 架空の書籍名・著者名を作らないこと
+- 有名すぎる話より、マイナーだが興味深い事例を優先すること
+- 日本語で出力すること`;
+
+  const prompt = `テーマ「${topic}」について、カテゴリ「${catLabel}」の事例を${count}件、上記形式のJSON配列で生成してください。
+ウェブ検索を活用し、実際に存在する文献・資料に基づいた内容を提供してください。
+マイナーで文学的に活用できる、意外性のある事例を優先してください。`;
+
+  const raw = await callAI(prompt, system);
+  let parsed = [];
+  try {
+    const clean = raw.replace(/```json|```/g,'').trim();
+    parsed = JSON.parse(clean);
+  } catch {
+    const m = raw.match(/\[[\s\S]*\]/);
+    if (m) try { parsed = JSON.parse(m[0]); } catch {}
+  }
+
+  return parsed.map((item,i) => ({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}-${i}`,
+    category,
+    title:       item.title       || `事例 ${i+1}`,
+    era:         item.era         || '年代不明',
+    summary:     item.summary     || '',
+    detail:      item.detail      || '',
+    sources:     Array.isArray(item.sources) ? item.sources : [],
+    reliability: Math.min(5, Math.max(1, item.source_reliability||3)),
+    fictionUse:  item.fiction_use || '',
+    tags:        Array.isArray(item.tags) ? item.tags : [],
+    topic:       topic.split('\n')[0].slice(0,20),
+    status:      'pending',
+    createdAt:   Date.now(),
+  }));
+}
+
+// ══════════════════════════════════════
+// Actions
+// ══════════════════════════════════════
+async function handleGenerate() {
+  const topic = document.getElementById('inp-topic').value.trim();
+  const cat   = document.getElementById('inp-cat').value;
+  const count = parseInt(document.getElementById('inp-count').value);
+
+  if (!topic) { toast('テーマを入力してください'); return; }
+  if (!getKey()) { toast('⚙️ 設定タブでAPIキーを入力してください'); switchTab('settings'); return; }
+
+  const prov = getProvider();
+  showLoad(
+    prov==='gemini' ? 'ウェブ検索中…' : '生成中…',
+    prov==='gemini' ? 'Gemini が資料を調査しています（少し時間がかかります）' : 'Claude が事例を生成しています'
+  );
+  try {
+    const items = await generateItems(topic, cat, count);
+    state.items = [...state.items, ...items];
+    save(); renderStats(); updateBadges();
+    hideLoad();
+    toast(`✅ ${items.length}件を収集DBに追加しました`);
+    switchTab('collection');
+  } catch(e) {
+    hideLoad();
+    toast('❌ ' + e.message, 4500);
+  }
+}
+
+function updateStatus(id, status) {
+  state.items = state.items.map(i=>i.id===id?{...i,status}:i);
+  save(); updateBadges();
+}
+function deleteItem(id) {
+  state.items = state.items.filter(i=>i.id!==id);
+  save(); updateBadges(); renderCollection(); renderPractical();
+}
+function approveAll() {
+  const pend = state.items.filter(i=>i.status==='pending');
+  if (!pend.length) { toast('未選別の事例はありません'); return; }
+  state.items = state.items.map(i=>i.status==='pending'?{...i,status:'approved'}:i);
+  save(); updateBadges(); renderCollection();
+  toast(`✅ ${pend.length}件を全て承認しました`);
+}
+function resetData() {
+  if (!confirm('全データを削除しますか？')) return;
+  state.items = []; save(); updateBadges(); renderStats();
+  renderCollection(); renderPractical(); renderSettings();
+  toast('🗑 リセットしました');
+}
+function exportCSV() {
+  const approved = state.items.filter(i=>i.status==='approved');
+  if (!approved.length) { toast('実用DBにデータがありません'); return; }
+  const rows = [['タイトル','カテゴリ','時代','概要','詳細','出典','信頼度','活用ヒント','タグ','登録日']];
+  approved.forEach(i => rows.push([
+    i.title, CMAP[i.category]?.label||i.category, i.era,
+    i.summary, i.detail,
+    i.sources.map(s=>s.citation).join(' / '),
+    i.reliability+'/5', i.fictionUse, i.tags.join(' / '),
+    new Date(i.createdAt).toLocaleDateString('ja-JP'),
+  ]));
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='historia_db.csv'; a.click();
+  toast('⬇ CSVをダウンロードしました');
+}
+
+// ══════════════════════════════════════
+// Render
+// ══════════════════════════════════════
+function updateBadges() {
+  const p=state.items.filter(i=>i.status==='pending').length;
+  const a=state.items.filter(i=>i.status==='approved').length;
+  const bp=document.getElementById('badge-p'), ba=document.getElementById('badge-a');
+  bp.textContent=p; bp.style.display=p?'':'none';
+  ba.textContent=a; ba.style.display=a?'':'none';
+}
+
+function renderStats() {
+  const p=state.items.filter(i=>i.status==='pending').length;
+  const a=state.items.filter(i=>i.status==='approved').length;
+  const r=state.items.filter(i=>i.status==='rejected').length;
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${p}</div><div class="stat-lbl">未選別</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--src-color)">${a}</div><div class="stat-lbl">実用DB</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)">${r}</div><div class="stat-lbl">除外済み</div></div>`;
+}
+
+function renderSettings() {
+  document.getElementById('set-total').textContent    = state.items.length+'件';
+  document.getElementById('set-approved').textContent = state.items.filter(i=>i.status==='approved').length+'件';
+  const p=getProvider(); setProvider(p);
+  document.getElementById('key-gemini').value    = localStorage.getItem('hist_key_gemini')||'';
+  document.getElementById('key-anthropic').value = localStorage.getItem('hist_key_anthropic')||'';
+}
+
+function getFiltered(status, catF, q) {
+  return state.items.filter(i=>{
+    if(i.status!==status) return false;
+    if(catF!=='all'&&i.category!==catF) return false;
+    if(q){
+      const lq=q.toLowerCase();
+      return i.title.includes(lq)||i.summary.includes(lq)||i.detail.includes(lq)||
+             i.topic.includes(lq)||i.tags.some(t=>t.includes(lq))||i.era.includes(lq);
+    }
+    return true;
+  });
+}
+
+function renderChips(containerId, current, allItems, setter, renderer) {
+  const counts={};
+  allItems.forEach(i=>{counts[i.category]=(counts[i.category]||0)+1;});
+  let html=`<div class="chip ${current==='all'?'active':''}" onclick="${setter}('all');${renderer}()">📜 全て <span style="opacity:.6">${allItems.length}</span></div>`;
+  CATS.filter(c=>counts[c.id]).forEach(c=>{
+    html+=`<div class="chip ${current===c.id?'active':''}" onclick="${setter}('${c.id}');${renderer}()">${c.icon} ${c.label} <span style="opacity:.6">${counts[c.id]}</span></div>`;
+  });
+  document.getElementById(containerId).innerHTML=html;
+}
+
+function renderCollection() {
+  const q   = document.getElementById('coll-search')?.value||'';
+  const all = state.items.filter(i=>i.status==='pending');
+  const items = getFiltered('pending', state.collCat, q);
+  renderChips('coll-chips', state.collCat, all, 'setCollCat', 'renderCollection');
+  const el = document.getElementById('coll-list');
+  if(!items.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-title">未選別の事例はありません</div><div class="empty-desc">検索タブでリサーチを実行すると<br>ここに事例が追加されます</div></div>`;
+    return;
+  }
+  el.innerHTML=items.map(i=>renderCard(i,'collection')).join('');
+}
+function renderPractical() {
+  const q   = document.getElementById('prac-search')?.value||'';
+  const all = state.items.filter(i=>i.status==='approved');
+  const items = getFiltered('approved', state.pracCat, q);
+  renderChips('prac-chips', state.pracCat, all, 'setPracCat', 'renderPractical');
+  const el = document.getElementById('prac-list');
+  if(!items.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-title">実用DBはまだ空です</div><div class="empty-desc">収集DBで事例を承認すると<br>ここに蓄積されます</div></div>`;
+    return;
+  }
+  el.innerHTML=items.map(i=>renderCard(i,'practical')).join('');
+}
+
+function reliabilityDots(n) {
+  return Array.from({length:5},(_,i)=>`<div class="rel-dot${i<n?' filled':''}"></div>`).join('');
+}
+
+function renderCard(item, mode) {
+  const cat = CMAP[item.category]||{};
+  const rel = item.reliability||3;
+  const relLabel = rel>=4?'高（一次資料確認）':rel===3?'中（要確認）':'低（伝聞）';
+  const relColor = rel>=4?'var(--src-color)':rel===3?'var(--amber)':'var(--red)';
+
+  const actions = mode==='collection'
+    ? `<button class="btn btn-success" style="flex:1" onclick="approveItem('${item.id}')">✓ 承認</button>
+       <button class="btn btn-danger"  style="flex:1" onclick="rejectItem('${item.id}')">✗ 除外</button>
+       <button class="btn btn-icon" onclick="confirmDel('${item.id}')">🗑</button>`
+    : `<button class="btn btn-ghost" style="flex:1" onclick="updateStatus('${item.id}','pending');renderPractical();renderCollection()">↩ 戻す</button>
+       <button class="btn btn-icon" onclick="confirmDel('${item.id}')">🗑</button>`;
+
+  return `
+<div class="item-card ${item.status}" id="card-${item.id}">
+  <div class="item-card-meta">
+    <span class="cat-pill ${cat.cls||''}">${cat.icon||''} ${cat.label||''}</span>
+    <span class="era-pill">${item.era}</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-muted)">
+      <span style="color:${relColor}">●</span> 信頼度${rel}/5
+    </span>
+  </div>
+  <div class="item-title" onclick="showDetail('${item.id}')">${item.title}</div>
+  <div class="item-preview" onclick="showDetail('${item.id}')">${item.summary}</div>
+  <div class="action-row">${actions}</div>
+</div>`;
+}
+
+function showDetail(id) {
+  const item = state.items.find(i=>i.id===id);
+  if (!item) return;
+  const cat = CMAP[item.category]||{};
+  const rel = item.reliability||3;
+  const relColor = rel>=4?'var(--src-color)':rel===3?'var(--amber)':'var(--red)';
+  const relLabel = rel>=4?'高（一次資料確認済み）':rel===3?'中（要確認）':'低（伝聞・推測）';
+
+  const srcHtml = item.sources?.length
+    ? item.sources.map(s=>`
+        <div class="source-item">
+          <span style="color:var(--src-color)">${SRC_TYPES[s.type]||s.type||'📌'}</span>
+          <span style="color:var(--ink-dim)"> ${s.citation}</span>
+          ${s.note?`<br><span style="color:var(--ink-muted);font-size:10px">→ ${s.note}</span>`:''}
+        </div>`).join('')
+    : '<div class="source-item" style="color:var(--amber)">⚠ 資料情報なし（要確認）</div>';
+
+  openSheet(`
+    <div class="item-card-meta" style="margin-bottom:12px">
+      <span class="cat-pill ${cat.cls||''}">${cat.icon||''} ${cat.label||''}</span>
+      <span class="era-pill">${item.era}</span>
+    </div>
+    <div class="item-title" style="font-size:19px;margin-bottom:10px">${item.title}</div>
+
+    <div class="reliability-bar" style="margin-bottom:12px">
+      <span class="rel-label">資料信頼度</span>
+      <div class="rel-dots">${reliabilityDots(rel)}</div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${relColor}">${relLabel}</span>
+    </div>
+
+    <div class="item-body">${item.detail||item.summary}</div>
+
+    ${item.fictionUse?`<div class="item-insight">✍️ ${item.fictionUse}</div>`:''}
+
+    <div class="source-block">
+      <div class="source-block-title">📚 出典・参考資料</div>
+      ${srcHtml}
+    </div>
+
+    ${item.tags?.length?`<div class="tags-row">${item.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`:''}
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-muted);margin-top:8px">
+      テーマ: ${item.topic} · ${new Date(item.createdAt).toLocaleDateString('ja-JP')}
+    </div>
+  `);
+}
+
+function approveItem(id) {
+  updateStatus(id,'approved');
+  const el=document.getElementById('card-'+id);
+  if(el){el.style.transition='opacity .2s,transform .2s';el.style.opacity='0';el.style.transform='translateX(40px)';setTimeout(()=>renderCollection(),220);}
+  toast('✅ 実用DBに登録しました');
+}
+function rejectItem(id) {
+  updateStatus(id,'rejected');
+  const el=document.getElementById('card-'+id);
+  if(el){el.style.transition='opacity .2s,transform .2s';el.style.opacity='0';el.style.transform='translateX(-40px)';setTimeout(()=>renderCollection(),220);}
+}
+function confirmDel(id) {
+  if(!confirm('この事例を削除しますか？')) return;
+  deleteItem(id);
+}
+function setCollCat(v){state.collCat=v;}
+function setPracCat(v){state.pracCat=v;}
+
+// ══════════════════════════════════════
+// Init
+// ══════════════════════════════════════
+load(); renderStats(); updateBadges();
+</script>
+
+</body>
+</html>
